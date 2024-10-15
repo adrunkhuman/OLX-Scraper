@@ -1,13 +1,15 @@
 from __future__ import annotations
-import requests
-from bs4 import BeautifulSoup, ResultSet, Tag, NavigableString
-from enum import StrEnum
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+
 import json
 import logging
-import time
 import os
+import time
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Any, Dict, List, Optional
+
+import requests
+from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
 
 # Configuration (could be moved to a separate config.py file)
 BASE_URL: str = (
