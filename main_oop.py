@@ -128,6 +128,7 @@ class OLXScraper:
             price_element.text.replace("zł", "")
             .replace(" ", "")
             .replace("donegocjacji", "")
+            .split(",")[0]
             if price_element
             else ""
         )
