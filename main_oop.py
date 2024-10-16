@@ -214,9 +214,7 @@ class AdvertExporter:
 
         with open(filename, "w", encoding="utf-8") as f:
             for advert in adverts:
-                advert_dict: dict[str, Any] = advert.__dict__
-                advert_dict["state"] = advert_dict["state"].value
-                f.write(json.dumps(advert_dict, ensure_ascii=False) + "\n")
+                f.write(json.dumps(advert.__dict__, ensure_ascii=False) + "\n")
 
 
 def main() -> None:
