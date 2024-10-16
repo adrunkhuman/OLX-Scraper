@@ -179,7 +179,7 @@ class OLXScraper:
             if model_lower in text_lower:
                 matches.append(model)
         # Check the number of matches
-        if len(matches) in [1, 2]:
+        if len(matches) in [1, 3]:
             return max(matches, key=len)
         elif len(matches) == 0:
             raise ValueError(f"No matches found for {text}")
