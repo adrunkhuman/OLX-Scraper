@@ -203,19 +203,22 @@ class OLXScraper:
 
     def scrape(self) -> list[Advert]:
         all_offers: list[Advert] = []
-        current_url: Optional[str] = self.base_url
-        pages_parsed: int = 0
+        try:
+            current_url: Optional[str] = self.base_url
+            pages_parsed: int = 0
 
-        while current_url and pages_parsed < self.page_limit:
-            html: str = self.fetch_page(current_url)
-            soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
+            while current_url and pages_parsed < self.page_limit:
+                html: str = self.fetch_page(current_url)
+                soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
-            offers: list[Advert] = self.get_offers(soup)
-            all_offers.extend(offers)
+                offers: list[Advert] = self.get_offers(soup)
+                all_offers.extend(offers)
 
-            current_url = self.get_next_page(soup)
-            pages_parsed += 1
-            logger.info(f"Parsed page {pages_parsed}: {current_url}")
+                current_url = self.get_next_page(soup)
+                pages_parsed += 1
+                logger.info(f"Parsed page {pages_parsed}: {current_url}")
+        finally:
+            self.session.close()
 
         logger.info(f"Total pages parsed: {pages_parsed}")
         return all_offers
