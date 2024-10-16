@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import json
 import logging
 import os
 import time
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import requests
 from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
@@ -41,7 +39,7 @@ class OLXScraper:
         self.page_limit: int = page_limit
         self.delay: float = delay
         self.session: requests.Session = requests.Session()
-        self.gpu_models: List[str] = [
+        self.gpu_models: list[str] = [
             # NVIDIA GPUs
             "GTX 1050",
             "GTX 1050 Ti",
@@ -163,7 +161,7 @@ class OLXScraper:
                 return next_page_url
         return None
 
-    def get_offers(self, soup: BeautifulSoup) -> List[Advert]:
+    def get_offers(self, soup: BeautifulSoup) -> list[Advert]:
         offers_div: Tag | NavigableString | None = soup.find(
             "div", class_="listing-grid-container css-d4ctjd"
         )
@@ -203,8 +201,8 @@ class OLXScraper:
                 f"Multiple matches found: {matches}"
             )  # More than one match
 
-    def scrape(self) -> List[Advert]:
-        all_offers: List[Advert] = []
+    def scrape(self) -> list[Advert]:
+        all_offers: list[Advert] = []
         current_url: Optional[str] = self.base_url
         pages_parsed: int = 0
 
@@ -212,7 +210,7 @@ class OLXScraper:
             html: str = self.fetch_page(current_url)
             soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
-            offers: List[Advert] = self.get_offers(soup)
+            offers: list[Advert] = self.get_offers(soup)
             all_offers.extend(offers)
 
             current_url = self.get_next_page(soup)
@@ -226,7 +224,7 @@ class OLXScraper:
 class AdvertExporter:
     @staticmethod
     def export_to_txt(
-        adverts: List[Advert], filename: str = "adverts_export.txt"
+        adverts: list[Advert], filename: str = "adverts_export.txt"
     ) -> None:
         base_name, extension = os.path.splitext(filename)
         counter = 1
@@ -236,14 +234,14 @@ class AdvertExporter:
 
         with open(filename, "w", encoding="utf-8") as f:
             for advert in adverts:
-                advert_dict: Dict[str, Any] = advert.__dict__
+                advert_dict: dict[str, Any] = advert.__dict__
                 advert_dict["state"] = advert_dict["state"].value
                 f.write(json.dumps(advert_dict, ensure_ascii=False) + "\n")
 
 
 def main() -> None:
     scraper: OLXScraper = OLXScraper(BASE_URL, PAGE_LIMIT, DELAY)
-    offers: List[Advert] = scraper.scrape()
+    offers: list[Advert] = scraper.scrape()
 
     logger.info(f"Total offers scraped: {len(offers)}")
     AdvertExporter.export_to_txt(offers)
