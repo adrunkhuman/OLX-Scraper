@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
 BASE_URL: str = (
     "https://www.olx.pl/elektronika/komputery/podzespoly-i-czesci/karty-graficzne/"
 )
-PAGE_LIMIT: int = 3
+PAGE_LIMIT: int = 1
 DELAY: float = 0.1
 
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +24,7 @@ class State(StrEnum):
     USED = "Używane"
     NEW = "Nowe"
     DAMAGED = "Uszkodzone"
+    ERROR = "Błąd"
 
 
 @dataclass
@@ -119,35 +120,27 @@ class OLXScraper:
         response.raise_for_status()
         return response.text
 
-    def parse_advert(self, url: str) -> Advert:
-        html: str = self.fetch_page(url)
-        soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
-        price_div: ResultSet = soup.find_all(
-            "div", {"data-testid": "ad-price-container"}
+    def parse_advert(self, html: Tag) -> Advert:
+        title_element = html.find("h6")
+        title = title_element.text if title_element else ""
+        price_element = html.find("p", class_="css-13afqrm")
+        price = (
+            price_element.text.replace("zł", "")
+            .replace(" ", "")
+            .replace("donegocjacji", "")
+            if price_element
+            else ""
         )
-        price: Optional[int] = (
-            int(price_div[0].find("h3").text.split(" zł")[0].replace(" ", ""))
-            if price_div
-            else None
-        )
-        model_div: ResultSet = soup.find_all("div", {"data-cy": "ad_title"})
+        print(price)
+        state_element = html.find("span", class_="css-up4xui")
+        state = state_element.text if state_element else ""
         try:
-            model: str = self.find_gpu_model(model_div[0].find("h4").text)
-        except (ValueError, IndexError):
-            model = "Unknown"
-        state_div: Tag | NavigableString | None = soup.find("ul", class_="css-rn93um")
-        state: Optional[State] = None
-        if state_div and isinstance(state_div, Tag):
-            state_li = next(
-                (li for li in state_div.find_all("li") if "Stan:" in li.text), None
-            )
-            if state_li:
-                state_text = state_li.text.split("Stan: ")[1].strip()
-                state = State(state_text)
-        if model and price and state:
-            return Advert(model, price, state)
-        else:
-            raise ValueError("Unable to create Advert instance: missing required data")
+            model = Advert(self.find_gpu_model(title), int(price), State(state))
+        except ValueError as e:
+            logger.error(f"Error parsing advert: {e}")
+            model = Advert(title, int(price), State.ERROR)
+        print(model)
+        return model
 
     def get_next_page(self, soup: BeautifulSoup) -> Optional[str]:
         pagination_list: Tag | NavigableString | None = soup.find(
@@ -162,44 +155,30 @@ class OLXScraper:
         return None
 
     def get_offers(self, soup: BeautifulSoup) -> list[Advert]:
-        offers_div: Tag | NavigableString | None = soup.find(
-            "div", class_="listing-grid-container css-d4ctjd"
-        )
+        offers_div: Tag | NavigableString | None = soup.find("div", class_="css-j0t2x2")
         adverts: list[Advert] = []
         if offers_div and isinstance(offers_div, Tag):
-            offers: ResultSet = offers_div.find_all("div", class_="css-u2ayx9")
+            offers: ResultSet[Tag] = offers_div.find_all("div", class_="css-1apmciz")
             for offer in offers:
-                offer_link: Tag | NavigableString | None = offer.find("a")
-                if (
-                    offer_link
-                    and isinstance(offer_link, Tag)
-                    and offer_link.has_attr("href")
-                ):
-                    offer_url: str = "https://www.olx.pl" + str(offer_link["href"])
-                    try:
-                        adverts.append(self.parse_advert(offer_url))
-                    except ValueError:
-                        continue
+                advert: Advert = self.parse_advert(offer)
+                adverts.append(advert)
+
         return adverts
 
     def find_gpu_model(self, text: str) -> str:
         text_lower = text.lower().replace(" ", "")
-
-        matches = [
-            model
-            for model in self.gpu_models
-            if model.lower().strip().replace(" ", "") in text_lower
-        ]
-
+        matches = []
+        for model in self.gpu_models:
+            model_lower = model.lower().strip().replace(" ", "")
+            if model_lower in text_lower:
+                matches.append(model)
         # Check the number of matches
-        if len(matches) == 1:
-            return matches[0]  # One match found
+        if len(matches) in [1, 2]:
+            return max(matches, key=len)
         elif len(matches) == 0:
-            raise ValueError("No matches found")
+            raise ValueError(f"No matches found for {text}")
         else:
-            raise ValueError(
-                f"Multiple matches found: {matches}"
-            )  # More than one match
+            raise ValueError(f"Multiple matches found: {matches} for {text}")
 
     def scrape(self) -> list[Advert]:
         all_offers: list[Advert] = []
