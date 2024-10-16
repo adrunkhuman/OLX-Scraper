@@ -120,18 +120,24 @@ class OLXScraper:
         response.raise_for_status()
         return response.text
 
-    def parse_advert(self, html: Tag) -> Advert:
+    def parse_advert(self, html: Tag) -> Optional[Advert]:
         title_element = html.find("h6")
         title = title_element.text if title_element else ""
         price_element = html.find("p", class_="css-13afqrm")
-        price = (
-            price_element.text.replace("zł", "")
-            .replace(" ", "")
-            .replace("donegocjacji", "")
-            .split(",")[0]
-            if price_element
-            else ""
-        )
+        price_text = price_element.text if price_element else ""
+        if "Zamienię" in price_text:
+            return None
+        else:
+            price = (
+                (
+                    price_text.replace("zł", "")
+                    .replace(" ", "")
+                    .replace("donegocjacji", "")
+                    .split(",")[0]
+                )
+                if price_text
+                else ""
+            )
         state_element = html.find("span", class_="css-up4xui")
         state = state_element.text if state_element else ""
         try:
@@ -159,8 +165,9 @@ class OLXScraper:
         if offers_div and isinstance(offers_div, Tag):
             offers: ResultSet[Tag] = offers_div.find_all("div", class_="css-1apmciz")
             for offer in offers:
-                advert: Advert = self.parse_advert(offer)
-                adverts.append(advert)
+                parsed_offer: Optional[Advert] = self.parse_advert(offer)
+                if parsed_offer:
+                    adverts.append(parsed_offer)
 
         return adverts
 
