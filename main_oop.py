@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
 BASE_URL: str = (
     "https://www.olx.pl/elektronika/komputery/podzespoly-i-czesci/karty-graficzne/"
 )
-PAGE_LIMIT: int = 1
+PAGE_LIMIT: int = 3
 DELAY: float = 0.1
 
 logging.basicConfig(level=logging.INFO)
@@ -131,7 +131,6 @@ class OLXScraper:
             if price_element
             else ""
         )
-        print(price)
         state_element = html.find("span", class_="css-up4xui")
         state = state_element.text if state_element else ""
         try:
@@ -139,7 +138,6 @@ class OLXScraper:
         except ValueError as e:
             logger.error(f"Error parsing advert: {e}")
             model = Advert(title, int(price), State.ERROR)
-        print(model)
         return model
 
     def get_next_page(self, soup: BeautifulSoup) -> Optional[str]:
