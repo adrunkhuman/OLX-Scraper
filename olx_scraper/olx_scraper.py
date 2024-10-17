@@ -4,7 +4,7 @@ import os
 import time
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Optional
+from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
