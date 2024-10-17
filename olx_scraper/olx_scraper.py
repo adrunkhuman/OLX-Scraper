@@ -114,11 +114,16 @@ class OLXScraper:
             "A770",
         ]
 
-    def fetch_page(self, url: str) -> str:
-        time.sleep(self.delay)
-        response: requests.Response = self.session.get(url)
-        response.raise_for_status()
-        return response.text
+    def fetch_page(self, url: str, retries: int = 3) -> str:
+        for _ in range(retries):
+            try:
+                time.sleep(self.delay)
+                response: requests.Response = self.session.get(url)
+                response.raise_for_status()
+                return response.text
+            except requests.RequestException as e:
+                logger.error(f"Failed to fetch page {url}: {e}, retrying...")
+        raise Exception(f"Failed to fetch page {url} after {retries} retries")
 
     def parse_advert(self, html: Tag) -> Optional[Advert]:
         title_element = html.find("h6")
