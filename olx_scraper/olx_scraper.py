@@ -32,6 +32,7 @@ class Advert:
     model: str
     price: int
     state: State
+    raw_title: str
 
 
 class OLXScraper:
@@ -146,10 +147,10 @@ class OLXScraper:
         state_element = html.find("span", class_="css-up4xui")
         state = state_element.text if state_element else ""
         try:
-            model = Advert(self.find_gpu_model(title), int(price), State(state))
+            model = Advert(self.find_gpu_model(title), int(price), State(state), title)
         except ValueError as e:
             logger.error(f"Error parsing advert: {e}")
-            model = Advert(title, int(price), State.ERROR)
+            model = Advert("", int(price), State.ERROR, title)
         return model
 
     def get_next_page(self, soup: BeautifulSoup) -> Optional[str]:
