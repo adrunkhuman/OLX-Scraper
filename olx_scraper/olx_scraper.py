@@ -134,7 +134,6 @@ class OLXScraper:
                 matches.append(model)
         # Check the number of matches
         if len(matches) >= 1:
-            print("ok")
             return max(matches, key=len)
         else:
             raise ValueError(f"No matches found for {text}")
