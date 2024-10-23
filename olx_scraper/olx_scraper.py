@@ -15,6 +15,7 @@ BASE_URL: str = (
 )
 PAGE_LIMIT: int = 3
 DELAY: float = 0.1
+GPU_DB: str = "gpu_db.csv"
 
 logging.basicConfig(level=logging.INFO)
 logger: logging.Logger = logging.getLogger(__name__)
@@ -41,79 +42,20 @@ class OLXScraper:
         self.page_limit: int = page_limit
         self.delay: float = delay
         self.session: requests.Session = requests.Session()
-        self.gpu_models: list[str] = [
-            # NVIDIA GPUs
-            "GTX 1050",
-            "GTX 1050 Ti",
-            "GTX 1060",
-            "GTX 1070",
-            "GTX 1070 Ti",
-            "GTX 1080",
-            "GTX 1080 Ti",
-            "GTX 1650",
-            "GTX 1650 Super",
-            "GTX 1660",
-            "GTX 1660 Ti",
-            "GTX 1660 Super",
-            "RTX 2060",
-            "RTX 2060 Super",
-            "RTX 2070",
-            "RTX 2070 Super",
-            "RTX 2080",
-            "RTX 2080 Super",
-            "RTX 2080 Ti",
-            "RTX 3060",
-            "RTX 3060 Ti",
-            "RTX 3070",
-            "RTX 3070 Ti",
-            "RTX 3080",
-            "RTX 3080 Ti",
-            "RTX 3090",
-            "RTX 3090 Ti",
-            "RTX 4060",
-            "RTX 4060 Ti",
-            "RTX 4070",
-            "RTX 4070 Ti",
-            "RTX 4080",
-            "RTX 4090"
-            # AMD GPUs
-            "RX 460",
-            "RX 470",
-            "RX 480",
-            "RX 550",
-            "RX 5500",
-            "RX 5500 XT",
-            "RX 560",
-            "RX 5600",
-            "RX 5600 XT",
-            "RX 570",
-            "RX 5700",
-            "RX 5700 XT",
-            "RX 580",
-            "RX 590",
-            "RX 6500",
-            "RX 6500 XT",
-            "RX 6600",
-            "RX 6600 XT",
-            "RX 6650 XT",
-            "RX 6700",
-            "RX 6700 XT",
-            "RX 6750 XT",
-            "RX 6800",
-            "RX 6800 XT",
-            "RX 6900 XT",
-            "RX 6950 XT",
-            "RX 7600",
-            "RX 7700 XT",
-            "RX 7800 XT",
-            "RX 7900 XT",
-            "RX 7900 XTX",
-            # Intel GPUs
-            "A380",
-            "A580",
-            "A750",
-            "A770",
-        ]
+        self.gpu_models = self.load_gpu_models(GPU_DB)
+
+    def load_gpu_models(self, gpu_db: str) -> list[str]:
+        try:
+            with open(gpu_db, "r", encoding="utf-8") as file:
+                gpu_data: list[str] = [
+                    gpu["Model"] for gpu in list(csv.DictReader(file))
+                ]
+            if not gpu_data:
+                raise ValueError(f"No GPU data found at {gpu_db }")
+            return gpu_data
+        except Exception as e:
+            logger.error(f"Error loading GPU models from {gpu_db}: {e}")
+            raise
 
     def fetch_page(self, url: str, retries: int = 3) -> str:
         for _ in range(retries):
@@ -188,16 +130,14 @@ class OLXScraper:
         text_lower = text.lower().replace(" ", "")
         matches = []
         for model in self.gpu_models:
-            model_lower = model.lower().strip().replace(" ", "")
-            if model_lower in text_lower:
+            if model.lower().replace(" ", "") in text_lower:
                 matches.append(model)
         # Check the number of matches
-        if len(matches) in [1, 3]:
+        if len(matches) >= 1:
+            print("ok")
             return max(matches, key=len)
-        elif len(matches) == 0:
-            raise ValueError(f"No matches found for {text}")
         else:
-            raise ValueError(f"Multiple matches found: {matches} for {text}")
+            raise ValueError(f"No matches found for {text}")
 
     def scrape(self) -> list[Advert]:
         all_offers: list[Advert] = []
