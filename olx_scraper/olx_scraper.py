@@ -1,8 +1,8 @@
-import json
+import csv
 import logging
-import os
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Optional
 
@@ -164,18 +164,19 @@ class OLXScraper:
 
 class AdvertExporter:
     @staticmethod
-    def export_to_txt(
-        adverts: list[Advert], filename: str = "adverts_export.txt"
+    def export_to_csv(
+        adverts: list[Advert], filename: str = "adverts_{datetime}.csv"
     ) -> None:
-        base_name, extension = os.path.splitext(filename)
-        counter = 1
-        while os.path.exists(filename):
-            filename = f"{base_name}_{counter}{extension}"
-            counter += 1
+        current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = filename.format(datetime=current_datetime)
 
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["model", "price", "state", "raw_title"])
             for advert in adverts:
-                f.write(json.dumps(advert.__dict__, ensure_ascii=False) + "\n")
+                writer.writerow(
+                    [advert.model, advert.price, advert.state, advert.raw_title]
+                )
 
 
 def main() -> None:
@@ -183,8 +184,10 @@ def main() -> None:
     offers: list[Advert] = scraper.scrape()
 
     logger.info(f"Total offers scraped: {len(offers)}")
-    AdvertExporter.export_to_txt(offers)
-    logger.info(f"Exported {len(offers)} adverts to adverts_export.txt")
+    AdvertExporter.export_to_csv(offers)
+    logger.info(
+        f"Exported {len(offers)} adverts to adverts_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"
+    )
 
 
 if __name__ == "__main__":
