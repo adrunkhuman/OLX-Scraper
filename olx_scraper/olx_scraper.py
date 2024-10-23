@@ -21,10 +21,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class State(StrEnum):
-    USED = "Używane"
-    NEW = "Nowe"
-    DAMAGED = "Uszkodzone"
-    ERROR = "Błąd"
+    USED = "used"
+    NEW = "new"
+    DAMAGED = "broken"
+    ERROR = "error"
 
 
 @dataclass
@@ -145,7 +145,14 @@ class OLXScraper:
                 else ""
             )
         state_element = html.find("span", class_="css-up4xui")
-        state = state_element.text if state_element else ""
+        state = State.ERROR
+        match state_element.text if state_element else None:
+            case "Używane":
+                state = State.USED
+            case "Nowe":
+                state = State.NEW
+            case "Uszkodzone":
+                state = State.DAMAGED
         try:
             model = Advert(self.find_gpu_model(title), int(price), State(state), title)
         except ValueError as e:
