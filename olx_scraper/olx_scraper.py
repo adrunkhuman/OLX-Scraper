@@ -4,7 +4,6 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
@@ -68,7 +67,7 @@ class OLXScraper:
                 logger.error(f"Failed to fetch page {url}: {e}, retrying...")
         raise Exception(f"Failed to fetch page {url} after {retries} retries")
 
-    def parse_advert(self, html: Tag) -> Optional[Advert]:
+    def parse_advert(self, html: Tag) -> Advert | None:
         title_element = html.find("h6")
         title = title_element.text if title_element else ""
         price_element = html.find("p", class_="css-13afqrm")
@@ -102,7 +101,7 @@ class OLXScraper:
             model = Advert("", int(price), State.ERROR, title)
         return model
 
-    def get_next_page(self, soup: BeautifulSoup) -> Optional[str]:
+    def get_next_page(self, soup: BeautifulSoup) -> str | None:
         pagination_list: Tag | NavigableString | None = soup.find(
             "ul", class_="pagination-list"
         )
@@ -120,7 +119,7 @@ class OLXScraper:
         if offers_div and isinstance(offers_div, Tag):
             offers: ResultSet[Tag] = offers_div.find_all("div", class_="css-1apmciz")
             for offer in offers:
-                parsed_offer: Optional[Advert] = self.parse_advert(offer)
+                parsed_offer: Advert | None = self.parse_advert(offer)
                 if parsed_offer:
                     adverts.append(parsed_offer)
 
@@ -141,7 +140,7 @@ class OLXScraper:
     def scrape(self) -> list[Advert]:
         all_offers: list[Advert] = []
         try:
-            current_url: Optional[str] = self.base_url
+            current_url: str | None = self.base_url
             pages_parsed: int = 0
 
             while current_url and pages_parsed < self.page_limit:
