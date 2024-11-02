@@ -29,7 +29,7 @@ class State(StrEnum):
 
 @dataclass
 class Advert:
-    model: str
+    model: str | None
     price: int
     state: State
     raw_title: str
@@ -94,11 +94,8 @@ class OLXScraper:
                 state = State.NEW
             case "Uszkodzone":
                 state = State.DAMAGED
-        try:
-            model = Advert(self.find_gpu_model(title), int(price), State(state), title)
-        except ValueError as e:
-            logger.error(f"Error parsing advert: {e}")
-            model = Advert("", int(price), State.ERROR, title)
+
+        model = Advert(self.find_gpu_model(title), int(price), State(state), title)
         return model
 
     def get_next_page(self, soup: BeautifulSoup) -> str | None:
@@ -125,7 +122,7 @@ class OLXScraper:
 
         return adverts
 
-    def find_gpu_model(self, text: str) -> str:
+    def find_gpu_model(self, text: str) -> str | None:
         text_lower = text.lower().replace(" ", "")
         matches = []
         for model in self.gpu_models:
@@ -135,7 +132,8 @@ class OLXScraper:
         if len(matches) >= 1:
             return max(matches, key=len)
         else:
-            raise ValueError(f"No matches found for {text}")
+            logger.error(f"No matches found for {text}")
+            return None
 
     def scrape(self) -> list[Advert]:
         all_offers: list[Advert] = []
