@@ -123,8 +123,8 @@ class OLXScraper:
         return adverts
 
     def find_gpu_model(self, text: str) -> str | None:
-        text_lower = text.lower().replace(" ", "")
-        matches = []
+        text_lower: str = text.lower().replace(" ", "")
+        matches: list[str] = []
         for model in self.gpu_models:
             if model.lower().replace(" ", "") in text_lower:
                 matches.append(model)
